@@ -1,0 +1,131 @@
+name: Update Plura Desktop formula
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 6 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: update-plura-desktop-formula
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.update.outputs.version }}
+      needs-update: ${{ steps.update.outputs.needs-update }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Render newest immutable upstream release
+        id: update
+        shell: bash
+        run: |
+          set -euo pipefail
+          latest_version="$(gh api 'repos/LJY0317/plura-desktop/releases?per_page=100' | python3 -c '
+          import json, re, sys
+          releases = json.load(sys.stdin)
+          versions = []
+          for release in releases:
+              tag = release.get("tag_name", "")
+              if release.get("draft") or not release.get("immutable"):
+                  continue
+              match = re.fullmatch(r"v([0-9]+(?:\.[0-9]+)+)", tag)
+              if match:
+                  versions.append((tuple(map(int, match.group(1).split("."))), match.group(1)))
+          if not versions:
+              raise SystemExit("no immutable semantic-version Plura Desktop release found")
+          print(max(versions)[1])
+          ')"
+          scripts/update-formula.sh "$latest_version"
+          echo "version=$latest_version" >> "$GITHUB_OUTPUT"
+          if git diff --quiet -- Formula/plura-desktop.rb; then
+            echo "needs-update=false" >> "$GITHUB_OUTPUT"
+            echo "Formula already matches v$latest_version."
+          else
+            echo "needs-update=true" >> "$GITHUB_OUTPUT"
+            git diff -- Formula/plura-desktop.rb
+          fi
+      - name: Upload rendered formula
+        if: steps.update.outputs.needs-update == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: rendered-formula
+          path: Formula/plura-desktop.rb
+          if-no-files-found: error
+
+  test:
+    needs: prepare
+    if: needs.prepare.outputs.needs-update == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Set up Homebrew tap
+        id: setup
+        uses: Homebrew/actions/setup-homebrew@1e34f2e2acaa766b7efacb8c26352e6abbb023f9 # 2026.09.13.1
+      - name: Install currently published formula
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          TAP_NAME: ${{ steps.setup.outputs.tap-name }}
+        run: brew install "$TAP_NAME/plura-desktop"
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: rendered-formula
+          path: candidate
+      - name: Stage candidate formula
+        run: cp candidate/plura-desktop.rb Formula/plura-desktop.rb
+      - name: Style and audit candidate
+        env:
+          TAP_NAME: ${{ steps.setup.outputs.tap-name }}
+        run: |
+          brew style "$TAP_NAME/plura-desktop"
+          brew audit --strict "$TAP_NAME/plura-desktop"
+      - name: Upgrade and test candidate
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          TAP_NAME: ${{ steps.setup.outputs.tap-name }}
+          EXPECTED_VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          brew upgrade "$TAP_NAME/plura-desktop"
+          brew test "$TAP_NAME/plura-desktop"
+          plura-desktop --version | grep -F "Plura Desktop $EXPECTED_VERSION"
+
+  commit:
+    needs: [prepare, test]
+    if: needs.prepare.outputs.needs-update == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: main
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: rendered-formula
+          path: candidate
+      - name: Commit verified formula update
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp candidate/plura-desktop.rb Formula/plura-desktop.rb
+          git add Formula/plura-desktop.rb
+          if git diff --cached --quiet; then
+            echo "Formula already updated by another run."
+            exit 0
+          fi
+          git config user.name "LJY0317"
+          git config user.email "221252045+LJY0317@users.noreply.github.com"
+          git commit -m "brew: update plura-desktop to v$VERSION"
+          git push origin HEAD:main

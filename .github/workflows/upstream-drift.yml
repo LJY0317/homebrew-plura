@@ -1,0 +1,58 @@
+name: Upstream release drift
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 7 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Compare formula with newest immutable Plura release
+        shell: bash
+        run: |
+          set -euo pipefail
+          formula_version="$(python3 - <<'PY'
+          from pathlib import Path
+          import re
+          source = Path("Formula/plura-desktop.rb").read_text(encoding="utf-8")
+          match = re.search(
+              r"/releases/download/v([0-9]+(?:\.[0-9]+)+)/plura_desktop-([0-9]+(?:\.[0-9]+)+)\.tar\.gz",
+              source,
+          )
+          if match is None:
+              raise SystemExit("unable to determine formula version")
+          if match.group(1) != match.group(2):
+              raise SystemExit("formula source tag/version mismatch")
+          print(match.group(1))
+          PY
+          )"
+          latest_version="$(gh api 'repos/LJY0317/plura-desktop/releases?per_page=100' | python3 -c '
+          import json, re, sys
+          releases = json.load(sys.stdin)
+          values = []
+          for release in releases:
+              tag = release.get("tag_name", "")
+              if release.get("draft") or not release.get("immutable"):
+                  continue
+              match = re.fullmatch(r"v([0-9]+(?:\.[0-9]+)+)", tag)
+              if match:
+                  version = match.group(1)
+                  values.append((tuple(map(int, version.split("."))), version))
+          if not values:
+              raise SystemExit("no immutable semantic-version Plura Desktop release found")
+          print(max(values)[1])
+          ')"
+          if [ "$formula_version" != "$latest_version" ]; then
+            echo "::error::Homebrew formula v$formula_version is behind newest immutable upstream release v$latest_version"
+            echo "Automatic update should have run first; inspect Update Plura Desktop formula."
+            exit 1
+          fi
+          echo "Formula v$formula_version matches newest immutable upstream release v$latest_version."

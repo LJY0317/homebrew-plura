@@ -1,0 +1,44 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  formula:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Set up Homebrew tap
+        id: setup
+        uses: Homebrew/actions/setup-homebrew@1e34f2e2acaa766b7efacb8c26352e6abbb023f9 # 2026.09.13.1
+      - name: Verify formula provenance
+        if: matrix.runner == 'macos-15'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAP_NAME: ${{ steps.setup.outputs.tap-name }}
+        run: |
+          version="$(brew info --json=v2 "$TAP_NAME/plura-desktop" | python3 -c 'import json,sys; print(json.load(sys.stdin)["formulae"][0]["versions"]["stable"])')"
+          scripts/update-formula.sh "$version" --check
+      - name: Style and audit
+        env:
+          TAP_NAME: ${{ steps.setup.outputs.tap-name }}
+        run: |
+          brew style "$TAP_NAME/plura-desktop"
+          brew audit --strict "$TAP_NAME/plura-desktop"
+      - name: Install and test
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          TAP_NAME: ${{ steps.setup.outputs.tap-name }}
+        run: |
+          brew install "$TAP_NAME/plura-desktop"
+          brew test "$TAP_NAME/plura-desktop"
+          plura-desktop --version
