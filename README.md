@@ -4,6 +4,8 @@ This tap installs the standalone macOS CLI/runtime for [Plura Desktop](https://g
 
 Plura Desktop is an unofficial community project and is not affiliated with, endorsed by, or supported by OpenAI.
 
+The formula requires **macOS 14 (Sonoma) or newer**, matching the current minimum OS for the official ChatGPT macOS app.
+
 ## Install
 
 The shortest form automatically adds this tap:

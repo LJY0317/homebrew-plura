@@ -9,7 +9,7 @@ class PluraDesktop < Formula
   sha256 "@@SDIST_SHA256@@"
   license "MIT"
 
-  depends_on macos: :monterey
+  depends_on macos: :sonoma
 
   resource "runtime" do
     on_arm do
