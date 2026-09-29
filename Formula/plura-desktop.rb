@@ -5,21 +5,21 @@
 class PluraDesktop < Formula
   desc "Multi-profile runtime for ChatGPT Desktop"
   homepage "https://github.com/LJY0317/plura-desktop"
-  url "https://github.com/LJY0317/plura-desktop/releases/download/v0.1.15/plura_desktop-0.1.15.tar.gz"
-  sha256 "486db281682c93f9612c55273d9f17a50fdbafa420daa10e9377919efa422b78"
+  url "https://github.com/LJY0317/plura-desktop/releases/download/v0.1.16/plura_desktop-0.1.16.tar.gz"
+  sha256 "cf5edebf252f1be84b3ceec5113a5e1ec09502fd8e172d130b2fdfd1ec8b431a"
   license "MIT"
 
   depends_on macos: :sonoma
 
   resource "runtime" do
     on_arm do
-      url "https://github.com/LJY0317/plura-desktop/releases/download/v0.1.15/plura-desktop-macos-arm64", using: :nounzip
-      sha256 "e4d8cef3b92c137994aeb261245a7e1e469020ce6139ac10e0f46beba0503d2f"
+      url "https://github.com/LJY0317/plura-desktop/releases/download/v0.1.16/plura-desktop-macos-arm64", using: :nounzip
+      sha256 "7a78efd56768d60579e3f10ae9bc8b78691441d1e78a1cc95777255e314a2d43"
     end
 
     on_intel do
-      url "https://github.com/LJY0317/plura-desktop/releases/download/v0.1.15/plura-desktop-macos-x86_64", using: :nounzip
-      sha256 "ef276622b2e3bcf4e77084aaa7d1ba4134873ec672c65c22de5b186f479129e7"
+      url "https://github.com/LJY0317/plura-desktop/releases/download/v0.1.16/plura-desktop-macos-x86_64", using: :nounzip
+      sha256 "3b0e428a4e1d322cdd421998a223413761e24defbef0dd9b29ff03b59cb72017"
     end
   end
 
