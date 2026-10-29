@@ -13,21 +13,19 @@ class PluraDesktop < Formula
 
   resource "runtime" do
     on_arm do
-      url "https://github.com/LJY0317/plura-desktop/releases/download/v@@VERSION@@/plura-desktop-macos-arm64", using: :nounzip
+      url "https://github.com/LJY0317/plura-desktop/releases/download/v@@VERSION@@/plura-desktop-macos-arm64.zip"
       sha256 "@@ARM64_SHA256@@"
     end
 
     on_intel do
-      url "https://github.com/LJY0317/plura-desktop/releases/download/v@@VERSION@@/plura-desktop-macos-x86_64", using: :nounzip
+      url "https://github.com/LJY0317/plura-desktop/releases/download/v@@VERSION@@/plura-desktop-macos-x86_64.zip"
       sha256 "@@X86_64_SHA256@@"
     end
   end
 
   def install
     resource("runtime").stage do
-      source = Dir["*"].find { |path| File.file?(path) }
-      odie "Downloaded Plura Desktop runtime is missing" if source.nil?
-      libexec.install source => "plura-desktop"
+      libexec.install Dir["*"]
     end
     (libexec/"plura-desktop").chmod 0755
     pkgshare.install "LICENSE", "README.md"
