@@ -5,29 +5,27 @@
 class PluraDesktop < Formula
   desc "Multi-profile runtime for ChatGPT Desktop"
   homepage "https://github.com/LJY0317/plura-desktop"
-  url "https://github.com/LJY0317/plura-desktop/releases/download/v0.1.17/plura_desktop-0.1.17.tar.gz"
-  sha256 "fec06799c53f86830635b0b98fae2d49592014ebf77a7657d3e324242f1e0f53"
+  url "https://github.com/LJY0317/plura-desktop/releases/download/v0.1.18/plura_desktop-0.1.18.tar.gz"
+  sha256 "a4d6c3aa3d9e81f7838067404317eff6841c2a17f9b1e7e7562188f088501ee0"
   license "MIT"
 
   depends_on macos: :sonoma
 
   resource "runtime" do
     on_arm do
-      url "https://github.com/LJY0317/plura-desktop/releases/download/v0.1.17/plura-desktop-macos-arm64", using: :nounzip
-      sha256 "bdaa1267cf56777f37fe104d0f20f15804244452d6723db91bb49870d1aec436"
+      url "https://github.com/LJY0317/plura-desktop/releases/download/v0.1.18/plura-desktop-macos-arm64.zip"
+      sha256 "a72e66f7c707ac7e9c59990c1e788da4064427c19abd683bab22d3ac46590503"
     end
 
     on_intel do
-      url "https://github.com/LJY0317/plura-desktop/releases/download/v0.1.17/plura-desktop-macos-x86_64", using: :nounzip
-      sha256 "31e5d6dfc22d3588c096c48ec06f33a9e59cad78c92e7cc9208866a0fdc0aa19"
+      url "https://github.com/LJY0317/plura-desktop/releases/download/v0.1.18/plura-desktop-macos-x86_64.zip"
+      sha256 "b8a76d36b7f7cdad3da3293ce37d19459209c616f3b4f4de2d513722fc7d5937"
     end
   end
 
   def install
     resource("runtime").stage do
-      source = Dir["*"].find { |path| File.file?(path) }
-      odie "Downloaded Plura Desktop runtime is missing" if source.nil?
-      libexec.install source => "plura-desktop"
+      libexec.install Dir["*"]
     end
     (libexec/"plura-desktop").chmod 0755
     pkgshare.install "LICENSE", "README.md"
