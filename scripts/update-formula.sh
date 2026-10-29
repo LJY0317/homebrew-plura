@@ -34,8 +34,8 @@ gh release download "$tag" --repo "$upstream" \
   --pattern SHA256SUMS \
   --pattern RELEASE-METADATA.json \
   --pattern "plura_desktop-$version.tar.gz" \
-  --pattern plura-desktop-macos-arm64 \
-  --pattern plura-desktop-macos-x86_64 \
+  --pattern plura-desktop-macos-arm64.zip \
+  --pattern plura-desktop-macos-x86_64.zip \
   --dir "$tmp"
 
 sha_for() {
@@ -43,8 +43,8 @@ sha_for() {
 }
 
 sdist="plura_desktop-$version.tar.gz"
-arm="plura-desktop-macos-arm64"
-intel="plura-desktop-macos-x86_64"
+arm="plura-desktop-macos-arm64.zip"
+intel="plura-desktop-macos-x86_64.zip"
 sdist_sha=$(sha_for "$sdist")
 arm_sha=$(sha_for "$arm")
 intel_sha=$(sha_for "$intel")
